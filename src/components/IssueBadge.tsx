@@ -10,7 +10,7 @@ interface Props {
 export default function IssueBadge({ severity }: Props) {
   return (
     <span
-      className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${severityColour(severity)}`}
+      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${severityColour(severity)}`}
     >
       {severity}
     </span>

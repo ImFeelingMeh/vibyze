@@ -2,61 +2,103 @@
  * Landing Page — public marketing page for Vibyze.
  */
 import Link from "next/link";
+import IssueBadge from "@/components/IssueBadge";
 
-export default function LandingPage() {
+const steps = [
+  { n: "1", title: "Enter your URL", desc: "Paste the link to the website you built with AI." },
+  { n: "2", title: "Vibyze scans it", desc: "Deterministic checks for SEO, accessibility, performance, mobile and security." },
+  { n: "3", title: "Get plain-English issues", desc: "Every issue is explained like a senior dev would explain it to you." },
+  { n: "4", title: "Copy the AI fix prompt", desc: "Paste it into your coding AI, fix the issue, and rescan." },
+];
+
+export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col">
+    <main className="flex-1">
       {/* Hero */}
-      <section className="flex flex-col items-center justify-center flex-1 px-6 py-24 text-center bg-gradient-to-b from-indigo-50 to-white">
-        <h1 className="text-5xl font-extrabold text-gray-900 leading-tight max-w-2xl">
-          Fix your website — even if you&apos;re not a developer.
+      <section className="mx-auto max-w-4xl px-6 pt-24 pb-16 text-center">
+        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-white">
+          Build with AI. <span className="text-indigo-400">Review with Vibyze.</span>
         </h1>
-        <p className="mt-6 text-xl text-gray-500 max-w-xl">
-          Vibyze scans your website, explains every issue in plain English, and
-          gives you a ready-to-use AI prompt to fix it instantly.
+        <p className="mx-auto mt-5 max-w-2xl text-lg text-zinc-400">
+          Vibyze analyzes your website, explains what&apos;s wrong in plain English,
+          and gives your coding AI a prompt to fix it.
         </p>
-        <div className="mt-10 flex gap-4">
+        <div className="mt-8 flex items-center justify-center gap-4">
           <Link
             href="/scan/new"
-            className="rounded-lg bg-indigo-600 px-8 py-3 text-base font-semibold text-white shadow hover:bg-indigo-700 transition-colors"
+            className="rounded-lg bg-indigo-600 px-6 py-3 font-medium text-white hover:bg-indigo-700 transition-colors"
           >
-            Scan my website
+            Scan my website — free
           </Link>
           <Link
-            href="#how-it-works"
-            className="rounded-lg border border-gray-300 px-8 py-3 text-base font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            href="/login"
+            className="rounded-lg border border-zinc-700 px-6 py-3 font-medium text-zinc-300 hover:border-zinc-500 transition-colors"
           >
-            How it works
+            Sign in
           </Link>
         </div>
       </section>
 
+      {/* Example issue */}
+      <section className="mx-auto max-w-3xl px-6 pb-16">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6 text-left">
+          <div className="flex items-center gap-3">
+            <IssueBadge severity="medium" />
+            <h2 className="font-semibold text-white">Images without alt text</h2>
+            <span className="ml-auto text-sm text-zinc-500">Confidence: 98%</span>
+          </div>
+          <p className="mt-3 text-sm text-zinc-400">
+            Your homepage has 4 images missing alt attributes. Screen readers can&apos;t
+            describe them to visually impaired visitors, and search engines can&apos;t index them properly.
+          </p>
+          <pre className="mt-4 overflow-x-auto rounded-lg border border-zinc-800 bg-zinc-950 p-4 text-xs leading-relaxed text-zinc-300">
+{`You are working on my website project.
+
+Vibyze detected: Images without alt text (Medium)
+
+Evidence: 4 images on the homepage have no alt attribute.
+
+Task:
+Add meaningful alt text to each affected image.
+Use empty alt="" for purely decorative images.
+
+Verify all images pass an accessibility audit afterwards.`}
+          </pre>
+        </div>
+      </section>
+
       {/* How it works */}
-      <section id="how-it-works" className="py-20 px-6 bg-white">
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-          How Vibyze works
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-5xl mx-auto text-center">
-          {[
-            { step: "1", title: "Enter your URL", desc: "Paste the URL of any website you want to analyse." },
-            { step: "2", title: "We scan it", desc: "Vibyze checks for performance, SEO, accessibility, and more." },
-            { step: "3", title: "Plain-English issues", desc: "Every problem is explained so anyone can understand it." },
-            { step: "4", title: "Copy the AI fix", desc: "Get a ready-made prompt to paste into ChatGPT or Cursor." },
-          ].map(({ step, title, desc }) => (
-            <div key={step} className="flex flex-col items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 text-xl font-bold">
-                {step}
-              </span>
-              <h3 className="font-semibold text-gray-900">{title}</h3>
-              <p className="text-sm text-gray-500">{desc}</p>
+      <section className="mx-auto max-w-4xl px-6 pb-20">
+        <h2 className="text-center text-2xl font-semibold text-white">How Vibyze works</h2>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {steps.map((s) => (
+            <div key={s.n} className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-950 text-sm font-bold text-indigo-400">
+                {s.n}
+              </div>
+              <h3 className="mt-3 font-medium text-white">{s.title}</h3>
+              <p className="mt-1 text-sm text-zinc-400">{s.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
+      {/* Score concept */}
+      <section className="mx-auto max-w-4xl px-6 pb-20 text-center">
+        <h2 className="text-2xl font-semibold text-white">One score for your whole site</h2>
+        <p className="mx-auto mt-3 max-w-xl text-zinc-400">
+          Every scan produces a Vibyze Score from 0–100, with per-category breakdowns so
+          you know exactly where to focus.
+        </p>
+        <div className="mt-8 inline-flex items-baseline gap-3 rounded-xl border border-zinc-800 bg-zinc-900 px-10 py-6">
+          <span className="text-5xl font-bold text-emerald-400">84</span>
+          <span className="text-lg text-zinc-400">/ 100 · Good</span>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="py-8 text-center text-sm text-gray-400 border-t border-gray-100">
-        &copy; {new Date().getFullYear()} Vibyze. Built for vibe coders everywhere.
+      <footer className="border-t border-zinc-800 py-8 text-center text-sm text-zinc-500">
+        Vibyze — AI-powered website analysis for vibe coders.
       </footer>
     </main>
   );

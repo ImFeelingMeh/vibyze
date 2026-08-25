@@ -1,201 +1,110 @@
 # Vibyze
 
-> AI-powered website analysis for vibe coders, beginners, and anyone using AI coding tools.
+**AI-powered website analysis for vibe coders.** Vibyze scans your website, explains what's wrong in plain English, and generates a copy-pasteable AI fix prompt so your coding AI (Cursor, Copilot, Claude) can fix it.
 
-**User enters a URL → Vibyze scans the site → identifies issues → explains each one in plain English → provides a copy-pasteable AI prompt to fix it.**
+```
+Enter URL → Scan → Categorized issues → Plain-English explanations → Copy AI fix prompt → Fix → Rescan
+```
 
----
+## Tech Stack
 
-## Recommended Tech Stack
-
-| Layer | Technology | Reason |
-|---|---|---|
-| **Frontend** | [Next.js 15](https://nextjs.org/) (App Router, TypeScript) | Full-stack React framework; great DX and performance |
-| **Styling / UI** | [Tailwind CSS](https://tailwindcss.com/) | Utility-first; fast to build clean UIs without a design system |
-| **Backend** | Next.js API Routes (Route Handlers) | Co-located with the frontend; no separate server needed for MVP |
-| **Database** | [PostgreSQL](https://www.postgresql.org/) via [Supabase](https://supabase.com/) or [Railway](https://railway.app/) | Managed, free tier available, simple to connect |
-| **ORM** | [Prisma](https://www.prisma.io/) | Type-safe DB queries; great for beginners |
-| **Authentication** | [NextAuth.js v5](https://authjs.dev/) | OAuth (GitHub / Google) + credentials out of the box |
-| **Website Scanning** | [Lighthouse CI](https://github.com/GoogleChrome/lighthouse-ci) / [Playwright](https://playwright.dev/) | Lighthouse for performance/SEO/a11y; Playwright for DOM checks |
-| **AI Prompts** | Generated server-side from issue templates | Simple string templating for MVP; hook up to OpenAI later |
-| **Deployment** | [Vercel](https://vercel.com/) | Zero-config Next.js deployment |
-
----
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 16 (App Router) + TypeScript |
+| Styling | Tailwind CSS v4 |
+| Database | Supabase PostgreSQL |
+| Auth | Supabase Auth (magic link) |
+| AI | OpenAI-compatible chat API (server-side only) |
+| Validation | Zod |
+| HTML analysis | cheerio |
 
 ## Project Structure
 
 ```
-vibyze/
-├── prisma/
-│   └── schema.prisma          # Database schema (User, Project, Scan, Issue, AIPrompt)
-├── public/                    # Static assets (favicon, images)
-├── src/
-│   ├── app/                   # Next.js App Router pages + API routes
-│   │   ├── page.tsx           # Landing page
-│   │   ├── layout.tsx         # Root layout (fonts, global CSS)
-│   │   ├── dashboard/
-│   │   │   └── page.tsx       # Dashboard — lists all projects
-│   │   ├── scan/
-│   │   │   ├── new/
-│   │   │   │   └── page.tsx   # New Scan form
-│   │   │   └── [scanId]/
-│   │   │       ├── page.tsx   # Scan Results — issue list
-│   │   │       └── issue/
-│   │   │           └── [issueId]/
-│   │   │               └── page.tsx  # Individual Issue + AI prompt
-│   │   ├── settings/
-│   │   │   └── page.tsx       # Account / Settings
-│   │   └── api/
-│   │       ├── scans/
-│   │       │   └── route.ts   # POST /api/scans
-│   │       └── projects/
-│   │           └── route.ts   # GET & POST /api/projects
-│   ├── components/
-│   │   ├── Navbar.tsx         # Top navigation
-│   │   ├── IssueBadge.tsx     # Severity colour badge
-│   │   └── CopyButton.tsx     # Clipboard copy button
-│   ├── lib/
-│   │   ├── prisma.ts          # Prisma client singleton
-│   │   └── utils.ts           # Shared helper functions
-│   └── types/
-│       └── index.ts           # Shared TypeScript interfaces
-├── .env.example               # Required environment variables
-├── package.json
-└── README.md
+src/
+  app/                  # Pages & API routes
+    api/scans/          # POST create scan, GET scan status
+    api/projects/       # GET/POST projects
+    auth/callback/      # Supabase OAuth/magic-link exchange
+    dashboard/          # Projects overview + recent scans
+    login/              # Magic-link sign-in
+    scan/new/           # New scan form
+    scan/[scanId]/      # Scan results (score, issues)
+    scan/[scanId]/issue/[issueId]/   # Issue detail + AI prompt
+    settings/           # Profile
+  components/           # Navbar, IssueBadge, CopyButton, ScanStatus…
+  lib/
+    supabase/           # Server/browser Supabase clients
+    scanner/            # urlGuard (SSRF), checks (deterministic), scanRunner
+    ai/                 # aiService, promptGenerator
+    scoring/            # scoreCalculator (centralized scoring)
+    utils.ts
+supabase/
+  migrations/           # SQL schema + RLS policies
+  config.toml           # Local Supabase CLI config
 ```
-
----
-
-## Core Data Models
-
-### User
-Managed by NextAuth. Stores basic profile info and owns many Projects.
-
-### Project
-Represents a website the user wants to analyse. Has a `name` and `url`. Belongs to a User and has many Scans.
-
-### Scan
-One analysis run on a Project. Tracks `status` (`PENDING → RUNNING → COMPLETED / FAILED`) and timestamps. Has many Issues.
-
-### Issue
-A single problem found during a Scan. Includes:
-- `title` — short name
-- `description` — beginner-friendly plain-English explanation
-- `severity` — `LOW | MEDIUM | HIGH | CRITICAL`
-- `category` — e.g. Performance, SEO, Accessibility
-- `affectedElement` — CSS selector or URL
-
-### AIPrompt
-A copy-pasteable AI prompt attached 1:1 to an Issue. Contains the `prompt` text.
-
----
-
-## Core Pages
-
-| Page | Route | Description |
-|---|---|---|
-| Landing | `/` | Marketing page; hero, how-it-works, CTA |
-| Dashboard | `/dashboard` | All projects and latest scan status |
-| New Scan | `/scan/new` | Form to enter a URL and start a scan |
-| Scan Results | `/scan/[scanId]` | List of issues found in a scan |
-| Issue Detail | `/scan/[scanId]/issue/[issueId]` | Full explanation + AI fix prompt |
-| Settings | `/settings` | Account details |
-
----
-
-## Basic User Flow
-
-```
-Sign up (OAuth or email/password)
-  └─→ Dashboard
-        └─→ New Scan  (enter URL + project name)
-              └─→ Scan runs in background
-                    └─→ Scan Results page  (issue list)
-                          └─→ Individual Issue page
-                                └─→ Read plain-English explanation
-                                └─→ Copy AI fix prompt  →  paste into ChatGPT / Cursor
-                          └─→ Re-scan  (button on results page)
-```
-
----
-
-## MVP Scope
-
-### ✅ Build for MVP
-- User authentication (GitHub OAuth via NextAuth)
-- Add a website (project) with a URL
-- Trigger a scan and show a loading state
-- Run Lighthouse analysis against the URL
-- Store results as Issues in the database
-- Display issues with severity and plain-English descriptions
-- Generate a basic AI fix prompt per issue (template-based)
-- Copy prompt to clipboard
-- Re-scan a project
-
-### 🔜 Save for later
-- Email / password authentication
-- Team / organisation support
-- Scheduled / continuous monitoring
-- GitHub integration (scan PRs / branches)
-- AI-generated prompts via OpenAI API
-- AI fix verification (auto-check if the fix worked)
-- Full scan history with diffs between runs
-- Custom scan rules / checklists
-- PDF / shareable reports
-- API access for CI/CD integration
-
----
-
-## Future Features
-
-| Feature | Description |
-|---|---|
-| **GitHub integration** | Scan a repo's preview deployments or PR branches automatically |
-| **Codebase analysis** | Detect issues at the source level (missing meta tags in JSX, etc.) |
-| **Continuous monitoring** | Schedule daily/weekly scans and alert on regressions |
-| **AI fix verification** | Re-run the scan after a fix and confirm the issue is resolved |
-| **Scan history & diffs** | Track how a site improves over time |
-| **Team features** | Share projects and scans across team members |
-| **OpenAI-powered prompts** | Generate dynamic, context-aware AI prompts with GPT-4 |
-| **Embeddable badge** | Show a "Vibyze score" badge on your GitHub README |
-
----
-
-## Getting Started
-
-### 1. Clone & install
-
-```bash
-git clone https://github.com/ImFeelingMeh/vibyze.git
-cd vibyze
-npm install
-```
-
-### 2. Environment variables
-
-Copy `.env.example` to `.env` and fill in the values:
-
-```bash
-cp .env.example .env
-```
-
-### 3. Set up the database
-
-```bash
-npx prisma db push       # push the schema to your database
-npx prisma studio        # optional: open the Prisma visual DB browser
-```
-
-### 4. Run the dev server
-
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000).
-
----
 
 ## Environment Variables
 
-See `.env.example` for the full list of required variables.
+Copy `.env.example` to `.env` and fill in:
+
+| Variable | Where to get it | Visibility |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase Dashboard → Project Settings → API | Public |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same page | Public |
+| `SUPABASE_SERVICE_ROLE_KEY` | Same page | **Secret** — server-only, never expose |
+| `OPENAI_API_KEY` | https://platform.openai.com/api-keys | **Secret** — server-only. Optional: without it, scans still work using deterministic template prompts |
+| `AI_MODEL` | Optional override, default `gpt-4o-mini` | Public |
+| `OPENAI_BASE_URL` | Optional — point at Groq/Ollama/etc. | Public |
+| `NEXT_PUBLIC_APP_URL` | Your app URL, e.g. `http://localhost:3000` | Public |
+
+## Setup
+
+### 1. Create a Supabase project
+
+1. Go to [supabase.com](https://supabase.com) → New project.
+2. In **Authentication → URL Configuration**, set Site URL to `http://localhost:3000` and add redirect URL `http://localhost:3000/auth/callback`.
+3. Magic-link emails are sent by Supabase automatically (rate-limited on the free tier).
+
+### 2. Run migrations
+
+In the Supabase Dashboard open **SQL Editor**, paste the contents of `supabase/migrations/00001_initial_schema.sql`, and run it.
+
+Or with the Supabase CLI:
+
+```bash
+npx supabase link --project-ref <your-project-ref>
+npx supabase db push
+```
+
+This creates `profiles`, `projects`, `scans`, `issues` with Row Level Security enforcing that users can only ever read/write their own data (enforced in the database, not just the UI).
+
+### 3. Configure env & run
+
+```bash
+cp .env.example .env    # fill in your values
+npm install
+npm run dev
+```
+
+Open http://localhost:3000, sign in with a magic link, and start scanning.
+
+## How Scanning Works
+
+1. **Validation & SSRF protection** — URLs are validated with Zod; DNS is resolved and checked against private/reserved IP ranges before any request (`src/lib/scanner/urlGuard.ts`). localhost, `.internal`, cloud metadata endpoints, and private IPs are blocked.
+2. **Deterministic checks** — the page is fetched once and analyzed with cheerio: SEO (title, meta description, headings, OG tags, broken links), accessibility (alt text, form labels, button names, landmarks, lang), performance (script count, render-blocking CSS, response time), mobile (viewport, fixed-width elements), security (HTTPS, security headers, mixed content, exposed credential patterns).
+3. **AI enrichment** — each detected issue is sent to the LLM *with its evidence* to produce a beginner-friendly explanation and a specific AI fix prompt. If no API key is set or the call fails, deterministic template content is used instead — scans never break because of AI.
+4. **Scoring** — severity-weighted deductions from 100, centralized in `scoreCalculator.ts`.
+
+## Known Limitations (MVP)
+
+- Single-page scan only — no crawling of subpages.
+- No headless browser: no rendered-layout checks, real Core Web Vitals, or JS-executed contrast analysis.
+- Scans run in-process (fire-and-forget); a queue/worker would be needed for scale.
+- Contrast checking and full WCAG auditing not included.
+- Profile editing / account deletion are placeholders.
+
+## Roadmap
+
+- **V2**: GitHub integration, private repo/code scanning, dependency vulnerability analysis, scan comparisons, continuous monitoring.
+- **V3**: AI fix verification, GitHub PR generation, Cursor/Claude Code integrations, team workspaces, notifications, billing.

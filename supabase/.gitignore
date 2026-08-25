@@ -1,0 +1,5 @@
+# Supabase local dev artifacts
+.branches
+.temp
+.env.local
+.env

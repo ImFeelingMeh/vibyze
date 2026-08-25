@@ -2,89 +2,181 @@
  * Scan Results page — lists all issues found in a specific scan.
  */
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/Navbar";
+import ScanStatus from "@/components/ScanStatus";
 import IssueBadge from "@/components/IssueBadge";
-import { scanStatusLabel } from "@/lib/utils";
+import { formatDate, severityDot } from "@/lib/utils";
+import { scoreColour, scoreLabel } from "@/lib/scoring/scoreCalculator";
 
-interface Props {
-  params: Promise<{ scanId: string }>;
+export const dynamic = "force-dynamic";
+
+interface IssueRow {
+  id: string;
+  category: string;
+  title: string;
+  description: string;
+  severity: string;
+  confidence: number | null;
 }
 
-export default async function ScanResultsPage({ params }: Props) {
+interface ScanRow {
+  id: string;
+  status: string;
+  score: number | null;
+  category_scores: Record<string, number> | null;
+  error_message: string | null;
+  created_at: string;
+  projects: { name: string; url: string } | { name: string; url: string }[] | null;
+}
+
+const SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"];
+
+export default async function ScanPage({
+  params,
+}: {
+  params: Promise<{ scanId: string }>;
+}) {
   const { scanId } = await params;
+  const supabase = await createClient();
 
-  // TODO: Fetch real scan + issues from the database using `scanId`
-  const scan = {
-    id: scanId,
-    status: "COMPLETED",
-    completedAt: new Date().toISOString(),
-    project: { name: "My Website", url: "https://example.com" },
-  };
+  const { data: scan } = await supabase
+    .from("scans")
+    .select("id, status, score, category_scores, error_message, created_at, projects (name, url)")
+    .eq("id", scanId)
+    .maybeSingle();
 
-  const issues = [
-    {
-      id: "issue-1",
-      title: "Missing alt text on images",
-      severity: "HIGH",
-      category: "Accessibility",
-    },
-    {
-      id: "issue-2",
-      title: "Page load time exceeds 3 seconds",
-      severity: "MEDIUM",
-      category: "Performance",
-    },
-    {
-      id: "issue-3",
-      title: "Missing meta description",
-      severity: "LOW",
-      category: "SEO",
-    },
-  ];
+  if (!scan) notFound();
+  const s = scan as unknown as ScanRow;
+
+  const project = Array.isArray(s.projects) ? s.projects[0] : s.projects;
+
+  const { data: issues } = await supabase
+    .from("issues")
+    .select("id, category, title, description, severity, confidence")
+    .eq("scan_id", scanId);
+
+  const list = ((issues ?? []) as IssueRow[]).sort(
+    (a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity)
+  );
 
   return (
     <>
       <Navbar />
-      <main className="max-w-4xl mx-auto px-6 py-10">
-        <div className="mb-6">
-          <Link href="/dashboard" className="text-sm text-indigo-600 hover:underline">
-            ← Back to dashboard
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-zinc-500">
+              {project?.name ?? "Project"} · {project?.url}
+            </p>
+            <h1 className="text-2xl font-bold text-white">Scan Results</h1>
+            <p className="mt-1 text-xs text-zinc-500">{formatDate(s.created_at)}</p>
+          </div>
+          <Link
+            href="/scan/new"
+            className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:border-zinc-500 transition-colors"
+          >
+            Rescan
           </Link>
         </div>
 
-        <div className="flex items-start justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{scan.project.name}</h1>
-            <p className="text-sm text-gray-500 mt-1">{scan.project.url}</p>
+        {(s.status === "queued" || s.status === "running") && (
+          <div className="mt-8">
+            <ScanStatus scanId={s.id} initialStatus={s.status} />
           </div>
-          <span className="text-sm font-medium text-gray-600 bg-gray-100 rounded-full px-3 py-1">
-            {scanStatusLabel(scan.status)}
-          </span>
-        </div>
+        )}
 
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
-          Issues found ({issues.length})
-        </h2>
+        {s.status === "failed" && (
+          <div className="mt-8 rounded-xl border border-red-900 bg-red-950/40 p-6">
+            <p className="font-medium text-red-300">Scan failed</p>
+            <p className="mt-1 text-sm text-zinc-400">
+              {s.error_message ?? "The website could not be scanned."}
+            </p>
+          </div>
+        )}
 
-        <ul className="space-y-3">
-          {issues.map((issue) => (
-            <li key={issue.id}>
-              <Link
-                href={`/scan/${scanId}/issue/${issue.id}`}
-                className="flex items-center justify-between rounded-xl border border-gray-200 px-5 py-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <IssueBadge severity={issue.severity} />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{issue.title}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{issue.category}</p>
-                  </div>
+        {s.status === "completed" && (
+          <>
+            {/* Score */}
+            <section className="mt-8 grid gap-4 lg:grid-cols-[auto_1fr]">
+              <div className="flex flex-col items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 px-12 py-8">
+                <span className={`text-6xl font-bold ${scoreColour(s.score ?? 0)}`}>
+                  {s.score}
+                </span>
+                <span className="mt-1 text-sm uppercase tracking-wide text-zinc-400">
+                  {scoreLabel(s.score ?? 0)}
+                </span>
+              </div>
+
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+                <h2 className="mb-4 font-semibold text-white">Category scores</h2>
+                <div className="space-y-3">
+                  {Object.entries(s.category_scores ?? {}).map(([cat, val]) => (
+                    <div key={cat} className="flex items-center gap-3">
+                      <span className="w-28 capitalize text-sm text-zinc-400">{cat}</span>
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-800">
+                        <div
+                          className={`h-full rounded-full ${
+                            val >= 80 ? "bg-emerald-500" : val >= 60 ? "bg-yellow-500" : "bg-red-500"
+                          }`}
+                          style={{ width: `${val}%` }}
+                        />
+                      </div>
+                      <span className={`w-8 text-right text-sm font-semibold ${scoreColour(val)}`}>
+                        {val}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <span className="text-gray-300 text-lg">→</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+              </div>
+            </section>
+
+            {/* Issues */}
+            <section className="mt-10">
+              <h2 className="text-lg font-semibold text-white">
+                Fix First
+                <span className="ml-2 text-sm font-normal text-zinc-500">
+                  ({list.length} issue{list.length === 1 ? "" : "s"})
+                </span>
+              </h2>
+
+              {list.length === 0 ? (
+                <p className="mt-4 rounded-xl border border-emerald-900 bg-emerald-950/40 p-6 text-center text-emerald-300">
+                  🎉 No issues detected. Great job!
+                </p>
+              ) : (
+                <ul className="mt-4 space-y-3">
+                  {list.map((issue) => (
+                    <li key={issue.id}>
+                      <Link
+                        href={`/scan/${s.id}/issue/${issue.id}`}
+                        className="block rounded-xl border border-zinc-800 bg-zinc-900 p-5 hover:border-indigo-800 transition-colors"
+                      >
+                        <div className="flex flex-wrap items-center gap-3">
+                          <span>{severityDot(issue.severity)}</span>
+                          <IssueBadge severity={issue.severity} />
+                          <span className="rounded-md bg-zinc-800 px-2 py-0.5 text-xs capitalize text-zinc-400">
+                            {issue.category.replace("_", " ")}
+                          </span>
+                          <h3 className="font-medium text-white">{issue.title}</h3>
+                          {issue.confidence !== null && (
+                            <span className="ml-auto text-xs text-zinc-500">
+                              Confidence: {issue.confidence}%
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-2 line-clamp-2 text-sm text-zinc-400">
+                          {issue.description}
+                        </p>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </>
+        )}
       </main>
     </>
   );

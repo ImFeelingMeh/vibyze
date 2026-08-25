@@ -7,14 +7,16 @@
  */
 export function severityColour(severity: string): string {
   switch (severity) {
-    case "CRITICAL":
-      return "text-red-600 bg-red-50";
-    case "HIGH":
-      return "text-orange-600 bg-orange-50";
-    case "MEDIUM":
-      return "text-yellow-600 bg-yellow-50";
+    case "critical":
+      return "text-red-400 bg-red-950/60 border border-red-900";
+    case "high":
+      return "text-orange-400 bg-orange-950/60 border border-orange-900";
+    case "medium":
+      return "text-yellow-400 bg-yellow-950/60 border border-yellow-900";
+    case "low":
+      return "text-sky-400 bg-sky-950/60 border border-sky-900";
     default:
-      return "text-green-600 bg-green-50";
+      return "text-zinc-400 bg-zinc-800 border border-zinc-700";
   }
 }
 
@@ -23,13 +25,13 @@ export function severityColour(severity: string): string {
  */
 export function scanStatusLabel(status: string): string {
   switch (status) {
-    case "PENDING":
+    case "queued":
       return "Queued";
-    case "RUNNING":
+    case "running":
       return "Scanning…";
-    case "COMPLETED":
+    case "completed":
       return "Completed";
-    case "FAILED":
+    case "failed":
       return "Failed";
     default:
       return status;
@@ -39,10 +41,44 @@ export function scanStatusLabel(status: string): string {
 /**
  * Formats an ISO date string to a readable date.
  */
-export function formatDate(iso: string): string {
+export function formatDate(iso: string | null): string {
+  if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
+}
+
+/**
+ * Returns a time ago string.
+ */
+export function timeAgo(iso: string | null): string {
+  if (!iso) return "never";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+/**
+ * Returns a dot for a severity level.
+ */
+export function severityDot(severity: string): string {
+  switch (severity) {
+    case "critical":
+      return "🔴";
+    case "high":
+      return "🟠";
+    case "medium":
+      return "🟡";
+    case "low":
+      return "🔵";
+    default:
+      return "⚪";
+  }
 }
