@@ -4,7 +4,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/Navbar";
-import { timeAgo, severityDot } from "@/lib/utils";
+import SeverityDot from "@/components/SeverityDot";
+import ProjectMenu from "@/components/ProjectMenu";
+import { timeAgo } from "@/lib/utils";
 import { scoreColour, scoreLabel } from "@/lib/scoring/scoreCalculator";
 
 export const dynamic = "force-dynamic";
@@ -56,7 +58,7 @@ export default async function DashboardPage() {
           </div>
           <Link
             href="/scan/new"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover transition-colors"
           >
             + New Scan
           </Link>
@@ -89,39 +91,56 @@ export default async function DashboardPage() {
                   }
                 : null;
               return (
-                <Link
+                <div
                   key={p.id}
-                  href={`/scan/${latest?.id ?? ""}`}
-                  className="block rounded-xl border border-zinc-800 bg-zinc-900 p-5 hover:border-indigo-800 transition-colors"
+                  className="relative rounded-xl border border-zinc-800 bg-zinc-900 p-5 hover:border-accent/60 transition-colors"
                 >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold text-white">{p.name}</h3>
-                      <p className="text-xs text-zinc-500">{p.url}</p>
+                  <Link
+                    href={`/scan/${latest?.id ?? ""}`}
+                    className="absolute inset-0"
+                    aria-label={`Open latest scan for ${p.name}`}
+                  />
+                  <div className="relative flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate font-semibold text-white">{p.name}</h3>
+                      <p className="truncate text-xs text-zinc-500">{p.url}</p>
                     </div>
-                    {latest && (
-                      <div className="text-right">
-                        <span className={`text-2xl font-bold ${scoreColour(latest.score ?? 0)}`}>
-                          {latest.score}
-                        </span>
-                        <span className="text-xs text-zinc-500"> /100</span>
-                        <p className="text-xs text-zinc-500">{scoreLabel(latest.score ?? 0)}</p>
-                      </div>
-                    )}
+                    <div className="flex shrink-0 items-start gap-1">
+                      {latest && (
+                        <div className="text-right">
+                          <span className={`text-2xl font-bold ${scoreColour(latest.score ?? 0)}`}>
+                            {latest.score}
+                          </span>
+                          <span className="text-xs text-zinc-500"> /100</span>
+                          <p className="text-xs text-zinc-500">{scoreLabel(latest.score ?? 0)}</p>
+                        </div>
+                      )}
+                      <ProjectMenu projectId={p.id} projectName={p.name} />
+                    </div>
                   </div>
 
-                  {counts ? (
-                    <p className="mt-3 text-sm">
-                      🔴 {counts.crit} &nbsp; 🟡 {counts.warn} &nbsp; 🟢 {counts.ok}
-                    </p>
-                  ) : (
-                    <p className="mt-3 text-sm text-zinc-500">No completed scans yet</p>
-                  )}
+                  <div className="relative">
+                    {counts ? (
+                      <p className="mt-3 flex items-center gap-4 text-sm text-zinc-400">
+                        <span className="flex items-center gap-1.5">
+                          <SeverityDot severity="critical" /> {counts.crit}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <SeverityDot severity="high" /> {counts.warn}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <SeverityDot severity="low" /> {counts.ok}
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="mt-3 text-sm text-zinc-500">No completed scans yet</p>
+                    )}
 
-                  <p className="mt-3 text-xs text-zinc-500">
-                    Last scanned {timeAgo(latest?.created_at ?? null)}
-                  </p>
-                </Link>
+                    <p className="mt-3 text-xs text-zinc-500">
+                      Last scanned {timeAgo(latest?.created_at ?? null)}
+                    </p>
+                  </div>
+                </div>
               );
             })}
           </div>

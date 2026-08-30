@@ -7,7 +7,9 @@ import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/Navbar";
 import ScanStatus from "@/components/ScanStatus";
 import IssueBadge from "@/components/IssueBadge";
-import { formatDate, severityDot } from "@/lib/utils";
+import SeverityDot from "@/components/SeverityDot";
+import RescanButton from "@/components/RescanButton";
+import { formatDate } from "@/lib/utils";
 import { scoreColour, scoreLabel } from "@/lib/scoring/scoreCalculator";
 
 export const dynamic = "force-dynamic";
@@ -73,12 +75,16 @@ export default async function ScanPage({
             <h1 className="text-2xl font-bold text-white">Scan Results</h1>
             <p className="mt-1 text-xs text-zinc-500">{formatDate(s.created_at)}</p>
           </div>
-          <Link
-            href="/scan/new"
-            className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:border-zinc-500 transition-colors"
-          >
-            Rescan
-          </Link>
+          {project?.url ? (
+            <RescanButton url={project.url} projectName={project.name} />
+          ) : (
+            <Link
+              href="/scan/new"
+              className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 hover:border-accent/60 hover:text-accent transition-colors"
+            >
+              New Scan
+            </Link>
+          )}
         </div>
 
         {(s.status === "queued" || s.status === "running") && (
@@ -143,7 +149,7 @@ export default async function ScanPage({
 
               {list.length === 0 ? (
                 <p className="mt-4 rounded-xl border border-emerald-900 bg-emerald-950/40 p-6 text-center text-emerald-300">
-                  🎉 No issues detected. Great job!
+                  No issues detected. Nice work.
                 </p>
               ) : (
                 <ul className="mt-4 space-y-3">
@@ -151,10 +157,10 @@ export default async function ScanPage({
                     <li key={issue.id}>
                       <Link
                         href={`/scan/${s.id}/issue/${issue.id}`}
-                        className="block rounded-xl border border-zinc-800 bg-zinc-900 p-5 hover:border-indigo-800 transition-colors"
+                        className="block rounded-xl border border-zinc-800 bg-zinc-900 p-5 hover:border-accent/60 transition-colors"
                       >
                         <div className="flex flex-wrap items-center gap-3">
-                          <span>{severityDot(issue.severity)}</span>
+                          <SeverityDot severity={issue.severity} />
                           <IssueBadge severity={issue.severity} />
                           <span className="rounded-md bg-zinc-800 px-2 py-0.5 text-xs capitalize text-zinc-400">
                             {issue.category.replace("_", " ")}

@@ -12,7 +12,7 @@ export function severityColour(severity: string): string {
     case "high":
       return "text-orange-400 bg-orange-950/60 border border-orange-900";
     case "medium":
-      return "text-yellow-400 bg-yellow-950/60 border border-yellow-900";
+      return "text-accent bg-accent-muted/60 border border-accent-muted";
     case "low":
       return "text-sky-400 bg-sky-950/60 border border-sky-900";
     default:
@@ -63,22 +63,4 @@ export function timeAgo(iso: string | null): string {
   if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
   const days = Math.floor(hours / 24);
   return `${days} day${days === 1 ? "" : "s"} ago`;
-}
-
-/**
- * Returns a dot for a severity level.
- */
-export function severityDot(severity: string): string {
-  switch (severity) {
-    case "critical":
-      return "🔴";
-    case "high":
-      return "🟠";
-    case "medium":
-      return "🟡";
-    case "low":
-      return "🔵";
-    default:
-      return "⚪";
-  }
 }

@@ -83,7 +83,9 @@ export async function POST(request: Request) {
   }
 
   // Fire-and-forget: the scan page polls status via the DB.
-  void runScan(scan.id, projectId, url);
+  runScan(scan.id, projectId, url).catch((err) => {
+    console.error(`Scan ${scan.id} crashed outside its own error handling:`, err);
+  });
 
   return NextResponse.json({ scanId: scan.id }, { status: 201 });
 }

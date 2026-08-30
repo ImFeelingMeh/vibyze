@@ -291,26 +291,51 @@ export function runChecks(page: PageFetch): CheckResult[] {
     });
   }
 
-  // Obvious exposed secrets in HTML
-  const secretPatterns: Array<[string, RegExp]> = [
-    ["AWS access key", /\bAKIA[0-9A-Z]{16}\b/],
-    ["Private key block", /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/],
-    ["Google API key", /\bAIza[0-9A-Za-z\-_]{35}\b/],
-    ["Generic bearer token", /\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/],
+  // Secrets that should never legitimately appear in client-facing HTML.
+  // Client-restricted keys (Google/Firebase/Maps API keys, etc.) are deliberately
+  // public by design (restricted server-side by referrer/quota) and are excluded
+  // to avoid flagging normal sites like YouTube/Google Maps embeds.
+  const secretPatterns: Array<{ name: string; pattern: RegExp; severity: CheckResult["severity"] }> = [
+    { name: "AWS access key ID", pattern: /\bAKIA[0-9A-Z]{16}\b/, severity: "critical" },
+    { name: "Private key block", pattern: /-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----/, severity: "critical" },
+    { name: "Stripe secret key", pattern: /\bsk_(live|test)_[0-9a-zA-Z]{24,}\b/, severity: "critical" },
+    { name: "Slack token", pattern: /\bxox[baprs]-[0-9A-Za-z-]{10,}\b/, severity: "critical" },
   ];
   const secretsFound = secretPatterns
-    .filter(([, re]) => re.test(page.html))
-    .map(([name]) => name);
+    .filter(({ pattern }) => pattern.test(page.html))
+    .map(({ name }) => name);
+
+  // JWT-shaped strings are common for legitimately public tokens (analytics,
+  // ID tokens), so only flag ones that actually decode as a JWT header, and
+  // treat them as a lower-confidence signal rather than a hard secret match.
+  const jwtMatch = page.html.match(/\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/);
+  if (jwtMatch && looksLikeJwt(jwtMatch[0])) {
+    secretsFound.push("Possible JWT / bearer token");
+  }
+
+  const maxSeverity = secretsFound.some((s) => s !== "Possible JWT / bearer token") ? "critical" : "medium";
   results.push({
     category: "security",
     id: "exposed-secrets",
     title: "Possible credentials exposed in page source",
     evidence: { matches: secretsFound },
     issue: secretsFound.length > 0,
-    severity: "critical",
+    severity: maxSeverity,
   });
 
   return results;
+}
+
+/** Decode a JWT's header segment and check it looks like real JWT metadata. */
+function looksLikeJwt(token: string): boolean {
+  try {
+    const header = token.split(".")[0];
+    const json = Buffer.from(header, "base64url").toString("utf8");
+    const parsed = JSON.parse(json) as { alg?: unknown; typ?: unknown };
+    return typeof parsed.alg === "string";
+  } catch {
+    return false;
+  }
 }
 
 /** Check up to N unique same-origin links for broken responses. */

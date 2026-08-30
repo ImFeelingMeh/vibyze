@@ -26,7 +26,7 @@ export default function CopyButton({ text, label = "Copy" }: Props) {
   return (
     <button
       onClick={handleCopy}
-      className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+      className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover transition-colors"
     >
       {copied ? "Copied!" : label}
     </button>

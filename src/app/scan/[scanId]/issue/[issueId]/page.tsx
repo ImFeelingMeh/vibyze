@@ -44,7 +44,7 @@ export default async function IssuePage({
     <>
       <Navbar />
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-        <Link href={`/scan/${scanId}`} className="text-sm text-indigo-400 hover:text-indigo-300">
+        <Link href={`/scan/${scanId}`} className="text-sm text-accent hover:text-accent-hover">
           ← Back to scan results
         </Link>
 

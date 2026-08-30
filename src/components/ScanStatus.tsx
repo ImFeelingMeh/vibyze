@@ -72,7 +72,7 @@ export default function ScanStatus({ scanId, initialStatus }: Props) {
   if (!done) {
     return (
       <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-10 text-center">
-        <span className="mx-auto mb-4 block h-3 w-3 animate-pulse rounded-full bg-indigo-400" />
+        <span className="mx-auto mb-4 block h-3 w-3 animate-pulse rounded-full bg-accent" />
         <p className="font-medium text-white">Scanning your website…</p>
         <p className="mt-1 text-sm text-zinc-400">
           This usually takes 15–60 seconds. The page will update automatically.

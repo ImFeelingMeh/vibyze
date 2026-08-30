@@ -71,7 +71,7 @@ export default function NewScanPage() {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://example.com"
-              className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder-zinc-500 focus:border-indigo-500 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder-zinc-500 focus:border-accent focus:outline-none"
             />
           </div>
 
@@ -85,7 +85,7 @@ export default function NewScanPage() {
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="My SaaS"
-              className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder-zinc-500 focus:border-indigo-500 focus:outline-none"
+              className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder-zinc-500 focus:border-accent focus:outline-none"
             />
           </div>
 
@@ -98,7 +98,7 @@ export default function NewScanPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-md bg-indigo-600 py-2.5 font-medium text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            className="w-full rounded-md bg-accent py-2.5 font-semibold text-accent-foreground hover:bg-accent-hover disabled:opacity-50 transition-colors"
           >
             {loading ? "Starting scan…" : "Start Scan"}
           </button>
@@ -106,7 +106,7 @@ export default function NewScanPage() {
 
         {loading && (
           <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900 p-5 text-center text-sm text-zinc-400">
-            <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-indigo-400" />
+            <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-accent" />
             Queuing your scan…
           </div>
         )}

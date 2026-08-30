@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { assertResolvableAndPublic } from "@/lib/scanner/urlGuard";
 import { fetchPage, runChecks, checkLinks, type CheckResult } from "@/lib/scanner/checks";
 import { generateIssueContent } from "@/lib/ai/promptGenerator";
@@ -9,10 +9,15 @@ import { scoreFromIssues, categoryScores } from "@/lib/scoring/scoreCalculator";
  * validate → fetch → deterministic checks → link check → AI enrichment → persist.
  * Designed to be called fire-and-forget from the API route; progress is
  * tracked via the scans.status column.
+ *
+ * Runs detached from the originating request (after the response is already
+ * sent), so it cannot use the cookie-bound Supabase client from
+ * `@/lib/supabase/server` — `next/headers` cookies() is unavailable outside
+ * the request scope by then. Uses the service-role admin client instead.
  */
 
 export async function runScan(scanId: string, projectId: string, url: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   try {
     await supabase.from("scans").update({ status: "running", started_at: new Date().toISOString() }).eq("id", scanId);
